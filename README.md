@@ -2,7 +2,7 @@
 
 Wecatch Go program tutorial
 
-**使用和转注意事项**
+# 使用和转注意事项
 
 除注明外，所有文章均采用 [Creative Commons BY-NC-ND 4.0（自由转载-保持署名-非商用-禁止演绎）](http://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh)协议发布。
 
