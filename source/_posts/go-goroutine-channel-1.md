@@ -143,8 +143,119 @@ go run ch08_03_netcat1.go
 13:58:57
 13:58:58
 ```
-然后我们再打开一个新的终端执行一个新的 client，发现没有任何输出，但是关闭第一个 client 之后，就会有时间输出。在这个例子中，由于 server 一次只能处理一个来自 client 的连接，所以当有多个 client 并发连接时，后续的 client 必须排队等候。
+然后我们再打开一个新的终端执行一个新的 client，发现没有任何输出，但是关闭第一个 client 之后，就会有时间输出。在这个例子中，由于 server 一次只能处理一个 client 的连接，所以当有多个 client 并发连接时，后续的 client 必须排队等候。
 
 使用 goroutine 就可以提高 server 的并发处理能力从而解决这个问题，非常简单，只需要在 server 端处理连接的地方加一个go 关键字即可 `go handleConn(conn)`。启用新的 goroutine 之后，同时开启多个 client 都会有时间输出，server 有了并发处理的能力了。
 
 
+# 例子：echo server
+
+Echo server 是一个演示回声的例子，在这个例子中我们将向 server 发送一段消息，然后 server 会以回声的形式回显，比如发送 `HELLO!`，server 会回显 `Hello!` 和 `hello!`。
+
+
+```go
+
+package main
+
+import (
+    "bufio"
+    "fmt"
+    "log"
+    "net"
+    "strings"
+    "time"
+)
+
+func main() {
+    listener, err := net.Listen("tcp", "localhost:8888")
+    if err != nil {
+        log.Fatal(err)
+    }
+    for {
+        conn, err := listener.Accept()
+        if err != nil {
+            log.Print(err)
+            continue
+        }
+
+        go handleConn(conn)
+    }
+}
+
+func handleConn(conn net.Conn) {
+    // 连接不断读取数据并转化
+    input := bufio.NewScanner(conn)
+    defer conn.Close()
+    for input.Scan() {
+        echo(conn, input.Text(), 1*time.Second)
+    }
+}
+
+func echo(c net.Conn, shout string, delay time.Duration) {
+    fmt.Fprintln(c, "\t", strings.ToUpper(shout))
+    time.Sleep(delay)
+    fmt.Fprintln(c, "\t", shout)
+    time.Sleep(delay)
+    fmt.Fprintln(c, "\t", strings.ToLower(shout))
+}
+
+```
+在上面的代码中 server 在接收到 client 的连接之后开始读取 client 的数据并回显，回显的过程是间隔延迟一断时间执行。
+
+```go
+package main
+
+import (
+    "io"
+    "log"
+    "net"
+    "os"
+)
+
+func main() {
+    conn, err := net.Dial("tcp", "localhost:8888")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    defer conn.Close()
+    // 从 conn 中读取数据并且送到标准输出
+    go mustCopy(os.Stdout, conn)
+    //从标准输入中读取数据并且送到 conn
+    mustCopy(conn, os.Stdin)
+}
+
+func mustCopy(dst io.Writer, src io.Reader) {
+    if _, err := io.Copy(dst, src); err != nil {
+        if err == io.EOF { //check eof ctrl + d
+            os.Exit(1)
+        }
+    }
+}
+
+```
+client 代码很简单，从标准输入读取数据发送到 server 和从 server 读取数据发送到标准输出。
+
+启动 server，启动一个 client 开启我们的实验。
+
+```
+± % make netcat2                                                               
+go run ch08_03_netcat2.go
+Hello
+     HELLO
+     Hello
+     hello
+Me
+     ME
+He   Me
+llo  me
+
+     HELLO
+     Hello
+     hello
+```
+如果同时有多个回声存在应该是交错出现才对，但是我们的 client 有两个回声出现时不是交错出现，而是依次返回完一个才继续下一个，为了模拟真实的回声我们还需要一个 goroutine 用来实现回声的交错显现，像这样 `go echo(conn, input.Text(), 1*time.Second)`。
+
+Goroutine 的参数是在 go 语句执行之后确定的，所以 input.Text() 值是在 go 语句开启之后已经确定的，即使同一个 client 的 connection 会有多个 msg 也会按照我们的要求回显。
+
+对于上面的 Go 程序来说，想要实现一个 server 同时处理多个 connection，而且甚至在同一个 connection 中实现并发需要的仅仅是两个简单的 go 关键字。

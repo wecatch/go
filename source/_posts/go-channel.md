@@ -38,13 +38,14 @@ func main() {
 
 ## Channel 
 
-Channel 是 Go 中为 goroutine 提供的一种通信机制，channel 是有类型的，而且是有方向的，可以把 channel 类比成 unix 中的 pipe。
+Channel 是 Go 中为 goroutine 提供的一种通信机制，借助于 channel 不同的 goroutine 之间可以相互通信。channel 是有类型的，而且有方向，可以把 channel 类比成 unix 中的 pipe。Go 通过 `<-` 操作符来实现 channel 的写和读，send value `<-` 在 channel 右侧，receive value `<-` 在左侧，receive value 不赋值给任何变量是合法的。
 
 ```go
 i := make(chan int)//int 类型
 s := make(chan string)//字符串类型
 r := make(<-chan bool)//只读
 w := make(chan<- []int)//只写
+<- w //合法的语句
 ```
 
 Channel 最重要的作用就是传递消息。
@@ -65,9 +66,11 @@ func main() {
 	fmt.Println("main function message")
 }
 ```
-例子中声明了一个 int 类型的 channel，在 goroutine 中在代码 `#1` 处向 channel 发送了数据 `1` ，在 main 中 `#2` 处等待数据的接收，如果 c 中没有数据，代码的执行将发生阻塞，直到 c 中数据接收完毕。这是 channel 最简单的用法之一：同步 ，这种类型的 channel 没有设置容量，称之为 **unbuffered channel**。
+例子中声明了一个 int 类型的 channel，在 goroutine 中在代码 `#1` 处向 channel 发送了数据 `1` ，在 main 中 `#2` 处等待数据的接收，如果 c 中没有数据，代码的执行将发生阻塞，直到有 goroutine 开始往 c 中 send value。
 
-## unbuffered channel 和 buffered channel
+这是 channel 最简单的用法之一：同步，这种类型的 channel 容量是 0，称之为 **unbuffered channel**。
+
+## unbuffered channel
 
 Channel 可以设置容量，表示 channel 允许接收的消息个数，默认的 channel 容量是 0 称为 **unbuffered channel** ，对 unbuffered channel 执行 **读** 操作 value := <-ch 会一直阻塞直到有数据可接收，执行 **写** 操作 ch <- value 也会一直阻塞直到有 goroutine 对 channel 开始执行接收，正因为如此在同一个 goroutine 中使用 unbuffered channel 会造成 deadlock。
 
@@ -88,11 +91,14 @@ func main() {
 
 执行报 `fatal error: all goroutines are asleep - deadlock!` ，读和写相互等待对方从而导致死锁发生。
 
-![来自 www.goinggo.net](https://www.goinggo.net/images/goinggo/Screen+Shot+2014-02-16+at+10.10.54+AM.png)
+![来自 www.goinggo.net](http://ozoxs1p4r.bkt.clouddn.com/Screen+Shot+2014-02-16+at+10.10.54+AM.jpg)
+
+
+## buffered channel
 
 如果 channel 的容量不是 0，此类 channel 称之为 **buffered channel** ，buffered channel 在消息写入个数 **未达到容量的上限之前不会阻塞** ，一旦写入消息个数超过上限，下次输入将会阻塞，直到 channel 有位置可以再写入。
 
-![来自 www.goinggo.net](https://www.goinggo.net/images/goinggo/Screen+Shot+2014-02-17+at+8.38.15+AM.png)
+![来自 www.goinggo.net](http://ozoxs1p4r.bkt.clouddn.com/Screen+Shot+2014-02-17+at+8.38.15+AM.jpg)
 
 ```go
 	package main
@@ -267,7 +273,7 @@ select 语句可以从多个可读的 channel 中随机选取一个执行，注�
 
 ## Channel 关闭之后
 
-Channel 可以被关闭 `close` ，**channel 关闭之后仍然可以读取**，如果 channel 关闭之前有值写入，关闭之后将依次读取 channel 中的消息，读完完毕之后再次读取将会返回 channel 的类型的 zero value：
+Channel 可以被关闭 `close` ，**channel 关闭之后仍然可以读取**，但是向被关闭的 channel send 会 panic。如果 channel 关闭之前有值写入，关闭之后将依次读取 channel 中的消息，读完完毕之后再次读取将会返回 channel 的类型的 zero value：
 
 
 ```go
@@ -296,8 +302,6 @@ func main() {
 
 输出 1 2 3 0 0 0 ，0 是 int channel c 的 zero value。
 
-**被关闭的 channel 可以进行 range 迭代**：
-
 
 ```go
 package main
@@ -320,15 +324,16 @@ func main() {
 }
 ```
 
+c 可以进行 range 迭代，如果 channel 没有被关闭 range 会一直等待 channel，但是关闭 channel 之后可以隐式的中断 range 的迭代
 
-未被关闭的 channel 则不行，如果没有被关闭，range 在输出完 channel 中的消息之后将会阻塞一直等待，从而发生死锁。
 
 ## 判断 channel 的关闭
+
+Go 提供了 ok 表达式来判断 channel 的关闭状态。
 ```go
 value, ok <- c
 ```
-用来判断 channel 是否关闭，如果 channel 是关闭状态，ok 是 false，value 是 channel 的 zero value，否则 ok 是 true 表示 channel 未关闭，value 表示 channel 中的值。
-
+如果 channel 是关闭状态，ok 是 false，value 是 channel 的 zero value，否则 ok 是 true 表示 channel 未关闭，value 表示 channel 中的值。
 
 
 ## 参考资料
