@@ -256,6 +256,6 @@ llo  me
 ```
 在现实世界的回声中，如果同时有多个回声存在应该会有交错出现的现象，但是我们的 client 有两个回声出现时不是交错出现，而是依次返回完一个才继续下一个，为了模拟真实的回声我们还需要一个 goroutine 用来实现回声的交错显现，像这样 `go echo(conn, input.Text(), 1*time.Second)`。
 
-**Goroutine 的参数是在 go 语句执行之后确定的，所以 input.Text() 值是在 go 语句开启之后已经确定的**，即使同一个 client 的 connection 会有多个 msg 也会按照我们的要求回显。
+**Goroutine 的参数是在 go 语句执行之后确定的，所以 input.Text() 值是在 go 语句开启之后就确定的**，也就是执行 go 语句时 input.Text() 如果返回消息 a，即使同一个 connection 后来又有消息 b，goroutine 函数的参数依然是 a，这样即使同一个 client 的 connection 会有多个 msg 也会按照我们的要求回显。
 
 对于上面的 Go 程序来说，想要实现一个 server 同时处理多个 connection，而且甚至在同一个 connection 中实现并发需要的仅仅是两个简单的 go 关键字。
