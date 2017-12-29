@@ -50,4 +50,31 @@ close(ch)
 **正是因为 unbuffered channel 的这种特性，unbuffered channel 也称之为 synchronous channel**。
 
 
+# Channel 实践之一：synchronous
+
+```go
+package main
+import (
+    "fmt"
+)
+
+func main() {
+    c := make(chan int)
+    go func(){
+        c <- 1
+    }
+    <-c
+    fmt.Println("main goroutine finish ")
+}
+```
+上面的代码展示了利用 unbuffered channel 完成同步的能力，main goroutine 会一直等待直到满足特定条件时才会结束。
+
+# Channel 的实践之二：pipeline
+
+Channel 是用来连接 goroutine 的通道，借此通道可以达到一个 goroutine 负责输入，另一个 goroutine 负责输出，这样的形式称之为 pipeline。
+
+![pipeline](http://ozoxs1p4r.bkt.clouddn.com/WX20171229-170322.png)
+
+
+
 
