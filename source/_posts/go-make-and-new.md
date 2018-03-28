@@ -167,11 +167,7 @@ fmt.Println(foo5.age)
 
 ```
 
-foo1 和 foo2 是同样的类型，都是 Foo 类型的值，foo1 是通过 var 声明，Foo 的 filed 自动初始化为每个类型的零值，foo2 是通过字面量的完成初始化。
-
-foo3，foo4 和 foo5 是一样的类型，都是 Foo 的指针 *Foo。
-
-**但是所有 foo 都可以直接使用 Foo 的 filed，读取或修改，为什么？**
+foo1 和 foo2 是同样的类型，都是 Foo 类型的值，foo1 是通过 var 声明，Foo 的 filed 自动初始化为每个类型的零值，foo2 是通过字面量的完成初始化。foo3，foo4 和 foo5 是一样的类型，都是 Foo 的指针 *Foo。**但是所有 foo 都可以直接使用 Foo 的 filed，读取或修改，为什么？**
 
 如果 x 是可寻址的，&x 的 filed 集合包含 m，x.m 和 (&x).m 是等同的，go 自动做转换，也就是 foo1.age 和 foo3.age 调用是等价的，go 在下面自动做了转换。
 

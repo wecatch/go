@@ -3,7 +3,7 @@ date: 2017-08-10 12:50:50
 tags:
 - 引用类型
 categories:
-- golang
+- basic
 ---
 
 ## 什么是引用类型
